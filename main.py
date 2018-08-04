@@ -1,5 +1,6 @@
 import pygame, sys
 import time
+import math
 
 from pygame.locals import *
 
@@ -24,8 +25,21 @@ babyDucky = 9
 #food start Coordinates
 foodx = 200
 foody = 200
-
+direction = 'north'
 belly = 0
+
+
+def distance(x1, x2, y1, y2):
+    print("checking distance")
+
+    distance1 = math.sqrt(((x1 - x2) ** 2) + ((y1 - y2) ** 2))
+    slope1 = 0
+    if (x2 - x1 == 0):
+        donothing = 1
+    else:
+        slope1 = (y2-y1)/(x2-x1)
+    print("Distance is: ", distance1, slope1)
+    return 0
 
 while True: #main game loop
 
@@ -36,36 +50,68 @@ while True: #main game loop
     mommaDuck = pygame.draw.circle(DISPLAYSURF, yellow, (mommaDuckx, mommaDucky), 8, 0)
     babyDuck = pygame.draw.circle(DISPLAYSURF, yellow, (babyDuckx, babyDucky), 5, 0)
 
+    if mommaDuckx < foodx:
+        if mommaDuckx < foodx and mommaDucky > foody:
+            mommaDuckx += 1
+            mommaDucky -= 1
 
+            babyDuckx = mommaDuckx - 10
+            babyDucky = mommaDucky + 10
+            direction = 'SE'
+        else:
+            mommaDuckx += 1
+            babyDuckx = mommaDuckx - 15
+            babyDucky = mommaDucky
+            direction = 'E'
+
+    if mommaDuckx > foodx:
+        if mommaDuckx > foodx and mommaDucky < foody:
+            mommaDuckx -= 1
+            mommaDucky += 1
+
+            babyDuckx = mommaDuckx + 15
+            babyDucky = mommaDucky - 15
+            direction = 'NW'
+        else:
+            mommaDuckx -= 1
+            babyDuckx = mommaDuckx + 15
+            babyDucky = mommaDucky
+            direction = 'W'
+
+    if mommaDucky < foody:
+        if mommaDucky < foody and mommaDuckx < foodx:
+            mommaDuckx += 1
+            mommaDucky += 1
+
+            babyDuckx = mommaDuckx - 15
+            babyDucky = mommaDucky - 15
+            direction = 'SW'
+        else:
+            mommaDucky += 1
+            babyDucky = mommaDucky - 15
+            babyDuckx = mommaDuckx
+            direction = 'N'
+
+    if mommaDucky > foody:
+        if mommaDucky > foody and mommaDuckx > foodx:
+            mommaDuckx -= 1
+            mommaDucky -= 1
+
+            babyDuckx = mommaDuckx + 15
+            babyDucky = mommaDucky + 15
+            direction = 'NE'
+        else:
+            mommaDucky -= 1
+            babyDucky = mommaDucky + 15
+            babyDuckx = mommaDuckx
+            direction = 'E'
+
+    dis = distance(foodx, mommaDuckx, foody, mommaDucky)
     #mommaDucks mission is to get to the food as quick as possible
 
-    if mommaDuckx < foodx:
-        mommaDuckx += 1
-    if mommaDuckx > foodx:
-        mommaDuckx -= 1
-    if mommaDucky < foody:
-        mommaDucky += 1
-    if mommaDucky > foody:
-        mommaDucky -= 1
-
-#    if babyDuckx < mommaDuckx - 1:
-#        babyDuckx += 2
-#   if babyDuckx > mommaDuckx + 1:
-#        babyDuckx -= 2
-#    if babyDucky < mommaDucky - 1:
-#        babyDucky += 2
-#    if babyDucky > mommaDucky + 1:
-#       babyDucky -= 2
-
-    def distance(x1,x2,y1,y2):
-        print ("checking distance")
-        m = 0
-        if x2-x1 != 0:
-            m = (y2-y1)/(x2-x1)
-        print("Slope is: ", m)
 
 
-    distance(foodx, foody, mommaDuckx, mommaDucky)
+
 
     if mommaDuckx == foodx and mommaDucky == foody:
         import random
