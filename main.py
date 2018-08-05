@@ -1,4 +1,5 @@
-import pygame, sys
+import pygame
+import sys
 import time
 import math
 
@@ -16,113 +17,75 @@ black = (35, 50, 80)
 blue = (50, 150, 255)
 yellow = (255, 255, 0)
 
-# mommaDuck start Coordinates
+# mommaDuck and babyDuck start Coordinates
 mommaDuckx = 10
 mommaDucky = 10
 babyDuckx = 9
 babyDucky = 9
 
-# food start Coordinates
+# food coordinates and score start
 foodx = 200
 foody = 200
-direction = 'north'
-belly = 0
+score = 0
+
+# create display surface grid imitation(400x400) to create colliders
+# should find a way to draw obstacles vs. manual input to each coordinate
+# could pull from file ex:
+# 000000000
+# 000110000
+# 000111100
+# 000000000
+m = 400
+n = 400
+a = [0] * n
+for i in range(n):
+    a[i] = [0] * m
+    print(a[i])
 
 
 # finds direct distance using coordinates
 def distance(x1, x2, y1, y2):
     print("checking distance")
     distance1 = math.sqrt(((x1 - x2) ** 2) + ((y1 - y2) ** 2))
-    slope1 = 0
     if x2 - x1 == 0:
-        donothing = 1
+        return 0
     else:
         slope1 = (y2-y1)/(x2-x1)
         print("Distance is: ", distance1, slope1)
-        return distance1
+        return distance1, slope1
+
 
 # main game loop
 while True:
 
+    # manipulating display surface
     DISPLAYSURF.fill(black)
-    # print to display surface
     food = pygame.draw.circle(DISPLAYSURF, blue, (foodx, foody), 5, 0)
     mommaDuck = pygame.draw.circle(DISPLAYSURF, yellow, (mommaDuckx, mommaDucky), 8, 0)
     babyDuck = pygame.draw.circle(DISPLAYSURF, yellow, (babyDuckx, babyDucky), 5, 0)
 
-    # ducks movement
-    # need to be A* algo
-    # baby duck needs to be independant but gains and loses attraction to mommaDuck position
-    if mommaDuckx < foodx:
-        # checks for diagonal requirement
-        if mommaDuckx < foodx and mommaDucky > foody:
-            mommaDuckx += 1
-            mommaDucky -= 1
-
-            babyDuckx = mommaDuckx - 10
-            babyDucky = mommaDucky + 10
-            direction = 'SE'
-        # single direction
-        else:
-            mommaDuckx += 1
-            babyDuckx = mommaDuckx - 15
-            babyDucky = mommaDucky
-            direction = 'E'
-
-    if mommaDuckx > foodx:
-        if mommaDuckx > foodx and mommaDucky < foody:
-            mommaDuckx -= 1
-            mommaDucky += 1
-
-            babyDuckx = mommaDuckx + 15
-            babyDucky = mommaDucky - 15
-            direction = 'NW'
-        else:
-            mommaDuckx -= 1
-            babyDuckx = mommaDuckx + 15
-            babyDucky = mommaDucky
-            direction = 'W'
-
-    if mommaDucky < foody:
-        if mommaDucky < foody and mommaDuckx < foodx:
-            mommaDuckx += 1
-            mommaDucky += 1
-
-            babyDuckx = mommaDuckx - 15
-            babyDucky = mommaDucky - 15
-            direction = 'SW'
-        else:
-            mommaDucky += 1
-            babyDucky = mommaDucky - 15
-            babyDuckx = mommaDuckx
-            direction = 'N'
-
-    if mommaDucky > foody:
-        if mommaDucky > foody and mommaDuckx > foodx:
-            mommaDuckx -= 1
-            mommaDucky -= 1
-
-            babyDuckx = mommaDuckx + 15
-            babyDucky = mommaDucky + 15
-            direction = 'NE'
-        else:
-            mommaDucky -= 1
-            babyDucky = mommaDucky + 15
-            babyDuckx = mommaDuckx
-            direction = 'E'
+    ################################################################
+    # ducks movement with changing (x,y) coordinates
+    #
+    # need to be A* algorithm needs to avoid obstacles
+    #
+    # baby duck needs to be linked to same pathfinder independently
+    # but gains and loses attraction to mommaDuck's previous position to imitate following
+    ################################################################
 
     dis = distance(foodx, mommaDuckx, foody, mommaDucky)
 
     # mission complete, reset food location randomly
     if mommaDuckx == foodx and mommaDucky == foody:
         import random
-        belly += 1
+        score += 1
         foodx = random.randint(0, 400)
         foody = random.randint(0, 400)
         print("Food coordinates: ", foodx, foody)
 
-        print(belly)
+        print(score)
 
+    # need a better way to manipulate speed
     time.sleep(.02)
 
     # exit window button
