@@ -50,7 +50,6 @@ for i in range(n):
 def ck_neighbors(x1, y1, x2, y2):
 
     # format = [distance, x1, y1]
-
     up = [ck_distance(x1, y1 + 1, x2, y2), x1, y1 + 1]
     down = [ck_distance(x1, y1 - 1, x2, y2), x1, y1 - 1]
 
@@ -62,7 +61,7 @@ def ck_neighbors(x1, y1, x2, y2):
     left_up = [ck_distance(x1 - 1, y1 + 1, x2, y2), x1 - 1, y1 + 1]
     left_down = [ck_distance(x1 - 1, y1 - 1, x2, y2), x1 - 1, y1 - 1]
 
-    best_distance = 400
+    best_distance = 800
 
     if up[0] < best_distance:
         best_distance = up[0]
@@ -105,14 +104,15 @@ def ck_neighbors(x1, y1, x2, y2):
 
     return x1, y1
 
+
 # moves given item based on given info
 def move_to(item, x, y):
     if item == 'food':
-        food = pygame.draw.circle(DISPLAYSURF, blue, (x, y), 5, 0)
+        pygame.draw.circle(DISPLAYSURF, blue, (x, y), 5, 0)
     if item == 'mommaDuck':
-        mommaDuck = pygame.draw.circle(DISPLAYSURF, yellow, (x, y), 8, 0)
+        pygame.draw.circle(DISPLAYSURF, yellow, (x, y), 8, 0)
     if item == 'babyDuck':
-        babyDuck = pygame.draw.circle(DISPLAYSURF, yellow, (x, y), 5, 0)
+        pygame.draw.circle(DISPLAYSURF, yellow, (x, y), 5, 0)
 
 
 # finds direct distance using coordinates
@@ -127,6 +127,15 @@ def ck_distance(x1, y1, x2, y2):
         return distance1
 
 
+# randomizes location of food each time it gets eaten by mommaDuck
+def rand_food():
+    import random
+    new_x = random.randint(0, 400)
+    new_y = random.randint(0, 400)
+    print("Food coordinates: ", new_x, new_y)
+    return new_x, new_y
+
+
 # main game loop
 while True:
 
@@ -134,45 +143,32 @@ while True:
     DISPLAYSURF.fill(black)
     food = pygame.draw.circle(DISPLAYSURF, blue, (foodx, foody), 5, 0)
 
-    mx, my = ck_neighbors(mx, my, foodx, foody)
-    mommaDuck = pygame.draw.circle(DISPLAYSURF, yellow, (mx, my), 8, 0)
-
-    bx, by = ck_neighbors(bx, by, mx, my)
-    babyDuck = pygame.draw.circle(DISPLAYSURF, yellow, (bx, by), 5, 0)
-
-    ################################################################
-    # ducks movement with changing (x,y) coordinates
-    #
-    # need to be A* algorithm needs to avoid obstacles
-    #
-    # baby duck needs to be linked to same pathfinder independently
-    # but gains and loses attraction to mommaDuck's previous position to imitate following
-    ################################################################
-
     # take start coordinate, check distance from neighboring coordinates, move duck to coordinate that
     # returns the smallest distance from food
 
+    mx, my = ck_neighbors(mx, my, foodx, foody)
+    # draw mommaDuck at closer position to food
+    mommaDuck = pygame.draw.circle(DISPLAYSURF, yellow, (mx, my), 8, 0)
 
+    bx, by = ck_neighbors(bx, by, mx, my)
+    # draw babyDuck at closer position to mommaDuck
+    babyDuck = pygame.draw.circle(DISPLAYSURF, yellow, (bx, by), 5, 0)
 
-
-
-
-
-
-
-    dis = ck_distance(foodx, mx, foody, my)
+    ########################################################################################
+    # ducks movement with changing (x,y) coordinates                                       #
+    #                                                                                      #
+    # need to be A* algorithm needs to avoid obstacles                                     #
+    #                                                                                      #
+    # baby duck needs to be linked to same pathfinder independently                        #
+    # but gains and loses attraction to mommaDuck's previous position to imitate following #
+    ########################################################################################
 
     # mission complete, reset food location randomly
     if mx == foodx and my == foody:
-        import random
-        score += 1
-        foodx = random.randint(0, 400)
-        foody = random.randint(0, 400)
-        print("Food coordinates: ", foodx, foody)
-        print(score)
-
         # send to function that changes food coordinates
-
+        foodx, foody = rand_food()
+        score += 1
+        print(score)
 
     # need a better way to manipulate speed
     time.sleep(.02)
