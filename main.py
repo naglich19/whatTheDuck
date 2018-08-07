@@ -2,6 +2,7 @@ import pygame
 import sys
 import time
 import math
+import random
 
 from pygame.locals import *
 
@@ -10,29 +11,37 @@ FPS = 30
 fpsClock = pygame.time.Clock()
 
 DISPLAYSURF = pygame.display.set_mode((400, 400), 0, 0)
-pygame.display.set_caption('what The Duck')
+pygame.display.set_caption('What_The_Duck')
 
 # color palette
 dark_blue = (35, 50, 80)
 blue = (50, 150, 255)
 yellow = (255, 255, 0)
 
-# mommaDuck and babyDuck start Coordinates
-mx = 20
-my = 20
-
-bx1 = 10
-by1 = 10
-
-bx2 = 0
-by2 = 0
-
-
-# food coordinates and score start
-foodx = 200
-foody = 200
+# starting variables and targets
+target = 0
+# food = [food_x, food_y]
+food_x = 200
+food_y = 200
+food = [food_x, food_y]
 score = 0
 
+#               0       1       2        3       4(t/f) 5(t/f)
+# mommaDuck = [mom_x, mom_y, target_x, target_y, lost1, lost2]
+
+mommaDuck = [20, 20, food_x, food_y, False, False]
+
+#                 0        1       2      3      4(t/f)
+# babyDuck1 = [baby_x1, baby_x2, mom_x, mom_y, wander]
+baby_x1 = 10
+baby_y1 = 10
+babyDuck1 = [10, 10, mommaDuck[0], mommaDuck[1], False]
+
+#               0         1        2         3      4(t/f)
+# babyDuck2 = [baby_x2, baby_y2, baby_x1, baby_y2, wander]
+baby_x2 = 0
+baby_y2 = 0
+babyDuck2 = [0, 0, babyDuck1[2], babyDuck1[3], False]
 
 # create display surface grid imitation(400x400) to create colliders
 # should find a way to draw obstacles vs. manual input to each coordinate
@@ -43,6 +52,7 @@ score = 0
 # 10001111001
 # 10000000001
 # 11111111111
+
 m = 400
 n = 400
 a = [0] * n
@@ -53,7 +63,6 @@ for i in range(n):
 
 # checks node if distance to food is shorter than changes coordinates to best node
 # very VERY slow and inefficient
-# intention^ but not working properly, need to fix order/priority
 def ck_node(x1, y1, x2, y2):
 
     # format = [distance from node to target, node x1, node y1]
@@ -114,12 +123,15 @@ def ck_node(x1, y1, x2, y2):
 
 # moves given item based on given info
 def move_to(item, x, y):
-    if item == 'food':
-        pygame.draw.circle(DISPLAYSURF, blue, (x, y), 2, 0)
+
     if item == 'mommaDuck':
         pygame.draw.circle(DISPLAYSURF, yellow, (x, y), 5, 0)
-    if item == 'babyDuck':
+    if item == 'babyDuck1':
         pygame.draw.circle(DISPLAYSURF, yellow, (x, y), 2, 0)
+    if item == 'babyDuck2':
+        pygame.draw.circle(DISPLAYSURF, yellow, (x, y), 2, 0)
+    if item == 'food':
+        pygame.draw.circle(DISPLAYSURF, blue, (x, y), 2, 0)
 
 
 # finds direct distance using coordinates
@@ -136,10 +148,15 @@ def ck_distance(x1, y1, x2, y2):
 
 # randomizes location of food each time it gets eaten by mommaDuck
 def rand_food():
-    import random
     new_x = random.randint(0, 400)
     new_y = random.randint(0, 400)
-    print("Food coordinates: ", new_x, new_y)
+    return new_x, new_y
+
+
+# make babyDuck wander if wander setting is True
+def wander():
+    new_x = random.randint(0, 400)
+    new_y = random.randint(0, 400)
     return new_x, new_y
 
 
@@ -148,24 +165,74 @@ while True:
 
     # manipulating display surface
     DISPLAYSURF.fill(dark_blue)
-    pygame.draw.circle(DISPLAYSURF, blue, (foodx, foody), 3, 0)
+
+    # Key ##########################################################
+    #  index:         0      1      2         3      4(t/f) 5(t/f) #
+    # mommaDuck = [mom_x, mom_y, target_x, target_y, lost1, lost2] #
+    ################################################################
+    #  index:         0        1       2         3       4(t/f)    #
+    # babyDuck1 = [baby_x1, baby_x2, target_x, target_y, wander]   #
+    ################################################################
+    #  index:         0        1       2         3       4(t/f)    #
+    # babyDuck2 = [baby_x2, baby_y2, target_x, target_y, wander]   #
+    ################################################################
+
+    food = [food_x, food_y]
+
+    # turn into mission function (send targetx, target y) if lost == true: target = baby
+
+    # if babyduck is lost mommaDuck's target is babyDuck1
+    if mommaDuck[4] is True:
+        mommaDuck[2] = babyDuck1[0]
+        mommaDuck[3] = babyDuck1[1]
+        # if mommaDuck is at babyDuck1, babyDuck1 is no longer lost
+        if mommaDuck[0] == mommaDuck[2] and mommaDuck[1] == mommaDuck[3]:
+            mommaDuck[4] = False
+            babyDuck1[4] = False
+            target += 1
+
+    # if babyduck is lost mommaDuck's target is babyDuck2
+    if mommaDuck[5] is True:
+        mommaDuck[2] = babyDuck2[0]
+        mommaDuck[3] = babyDuck2[1]
+        # if mommaDuck is at babyDuck1, babyDuck2 is no longer lost
+        if mommaDuck[0] == mommaDuck[2] and mommaDuck[1] == mommaDuck[3]:
+            mommaDuck[4] = False
+            babyDuck2[4] = False
+            target += 1
+    # else mommaDuck's target is food
+    else:
+        mommaDuck[2] = food[0]
+        mommaDuck[3] = food[1]
+
+    if babyDuck1[4] is True:
+        babyDuck1[2], babyDuck1[3] = wander(target)
+    else:
+        babyDuck1[2] = mommaDuck[0]
+        babyDuck1[3] = mommaDuck[1]
+
+    if babyDuck2[4] is True:
+        babyDuck2[2], babyDuck2[3] = wander(target)
+    else:
+        babyDuck2[2] = babyDuck1[0]
+        babyDuck2[3] = babyDuck1[1]
 
     # take start coordinate, check distance from neighboring coordinates, move designated duck to coordinate that
     # returns the closer coordinates to food
 
-    mx, my = ck_node(mx, my, foodx, foody)
-
+    mommaDuck[0], mommaDuck[1] = ck_node(mommaDuck[0], mommaDuck[1], mommaDuck[2], mommaDuck[3])
+    move_to('mommaDuck', mommaDuck[0], mommaDuck[1])
     # same as mommaDuck pathfinder but keeps ducks 10 away from target, each one follows the duck in front of it
-    if ck_distance(bx1, by1, mx, my) > 20:
-        bx1, by1 = ck_node(bx1, by1, mx, my)
 
-    if ck_distance(bx2, by2, bx1, by1) >= 17:
-        bx2, by2 = ck_node(bx2, by2, bx1, by1)
+    if ck_distance(babyDuck1[0], babyDuck1[1], babyDuck1[2], babyDuck1[3]) >= 20:
+        babyDuck1[0], babyDuck1[1] = ck_node(babyDuck1[0], babyDuck1[1], babyDuck1[2], babyDuck1[3])
 
-    # print all ducks
-    pygame.draw.circle(DISPLAYSURF, yellow, (mx, my), 8, 0)
-    pygame.draw.circle(DISPLAYSURF, yellow, (bx1, by1), 5, 0)
-    pygame.draw.circle(DISPLAYSURF, yellow, (bx2, by2), 5, 0)
+    move_to('babyDuck1', babyDuck1[0], babyDuck1[1])
+
+    if ck_distance(babyDuck2[0], babyDuck2[1], babyDuck2[2], babyDuck2[3]) >= 17:
+        babyDuck2[0], babyDuck2[1] = ck_node(babyDuck2[0], babyDuck2[1], babyDuck2[2], babyDuck2[3])
+
+    move_to('babyDuck2', babyDuck2[0], babyDuck2[1])
 
     # I want baby duck to search for and find mommaDucks PREVIOUS position to imitate following.
     # right now it just stays at least 10 pixels away at all times
@@ -175,16 +242,20 @@ while True:
     # need to be A* algorithm needs to avoid obstacles                               #
     #                                                                                #
     # baby duck needs to use same pathfinder independently but gains and loses       #
-    # attraction to mommaDuck's previous position to imitate following               #
+    # attraction to mommaDuck's PREVIOUS position to imitate following               #
     # and lack of following, kind of a lose focus and wander trait                   #
     ##################################################################################
 
     # mission complete, reset food location randomly
-    if mx == foodx and my == foody:
-        # send to function that changes food coordinates
-        foodx, foody = rand_food()
+    if mommaDuck[0] == food_x and mommaDuck[1] == food_y:
+        # send to function that changes food coordinates and prints first frame
+        food_x, food_y = rand_food()
+        move_to('food', food_x, food_y)
         score += 1
         print(score)
+
+    # print food for every frame
+    move_to('food', food_x, food_y)
 
     # need a better way to manipulate speed
     time.sleep(.02)
