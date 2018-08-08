@@ -152,27 +152,29 @@ def main():
         move_to('mommaDuck', path[index])
 
         # immitates following by picking 10 locations in path behind momma
+
         if index > 10:
             move_to('babyDuck', path[index - 10])
         else:
-            move_to('babyDuck', path[index])
+            move_to('babyDuck', path[0])
         if index > 20:
-            move_to('babyDuck', path[index - 20])
+            move_to('babyDuck', path[index - 18])
         else:
-            move_to('babyDuck', path[index])
-        print (path[index])
+            move_to('babyDuck', path[0])
+        print(path[index])
 
         # if momma finds food, make new food
         # i want to have a food limit, a belly limit. when reached, babies wandered.
         # belly slowly empties, when empty, momma finds babies, and continues hunt
-        while mDuck == food:
+        if mDuck == food:
             path = 0
             index = 0
             new_food = True
-            food = (random.randint(0, 400), random.randint(0, 400))
+            food = (random.randint(10, 390), random.randint(10, 390))
             score += 1
+            move_to('food',food)
             print(score)
-
+        move_to('food', food)
         index += 1
         # exit window button
         pygame.display.update()
