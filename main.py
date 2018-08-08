@@ -1,21 +1,6 @@
-# I want baby duck to search for and find mommaDucks PREVIOUS position to imitate following.
-# right now it just stays at least 10 pixels away at all times
-# might be able to store this location with a*
-#
-# ducks movement with changing (x,y) coordinates
-# need to be a* algorithm needs to avoid obstacles
-#
-# baby duck needs to use same pathfinder independently but gains and loses
-# attraction to mommaDuck's PREVIOUS position to imitate following
-# and lack of following, kind of a lose focus and wander trait
-#
-# with a*, path needs to loop new coordinates through my move_to function.
-# should be able to reuse target information. might have to rebuild babyduck following.
-
 import pygame
 import sys
 import time
-import math
 import random
 
 from pygame.locals import *
@@ -32,241 +17,173 @@ dark_blue = (35, 50, 80)
 blue = (50, 150, 255)
 yellow = (255, 255, 0)
 
-# starting variables and targets
-target = 0
 
-# food = [food_x, food_y]
-food_x = 200
-food_y = 200
-food = [food_x, food_y]
-score = 0
+class Node:
+    # initialize for find_best_path. need to better understand this
+    def __init__(self, parent=None, position=None):
+        self.parent = parent
+        self.position = position
 
-#               0       1       2        3       4(t/f) 5(t/f)
-# mommaDuck = [mom_x, mom_y, target_x, target_y, lost1, lost2]
-mDuck = [20, 20, food_x, food_y, False, False]
+        self.g = 0
+        self.h = 0
+        self.f = 0
 
-#                 0        1       2      3      4(t/f)
-# babyDuck1 = [baby_x1, baby_x2, mom_x, mom_y, wander]
-bDuck1 = [10, 10, mDuck[0], mDuck[1], False]
-
-#               0         1        2         3      4(t/f)
-# babyDuck2 = [baby_x2, baby_y2, baby_x1, baby_y2, wander]
-bDuck2 = [0, 0, bDuck1[2], bDuck1[3], False]
-
-# create display surface grid imitation(400x400) to create colliders
-# should find a way to draw obstacles vs. manual input to each coordinate
-# could pull from file ex:
-# 11111111111
-# 10000000001
-# 10001100001
-# 10001111001
-# 10000000001
-# 11111111111
-
-m = 400
-n = 400
-a = [0] * n
-for i in range(n):
-    a[i] = [0] * m
-    print(a[i])
+    def __eq__(self, other):
+        return self.position == other.position
 
 
-# checks node if distance to food is shorter than changes coordinates to best node
-# very VERY slow and inefficient
-def ck_node(x1, y1, x2, y2):
+def find_best_path(maze, start, end):
 
-    # format = [distance from node to target, node x1, node y1]
-    up = [(ck_distance(x1, y1 + 1, x2, y2)), x1, y1 + 1]
-    down = [(ck_distance(x1, y1 - 1, x2, y2)), x1, y1 - 1]
+    # create start and end nodes
+    start_node = Node(None, start)
+    start_node.g = start_node.h = start_node.f = 0
+    end_node = Node(None, end)
+    end_node.g = end_node.h = end_node.f = 0
 
-    right = [(ck_distance(x1 + 1, y1, x2, y2)), x1 + 1, y1]
-    right_up = [(ck_distance(x1 + 1, y1 + 1, x2, y2)), x1 + 1, y1 + 1]
-    right_down = [(ck_distance(x1 + 1, y1 - 1, x2, y2)), x1 + 1, y1 - 1]
+    # inititalize both open and closed lists
+    open_list = []
+    closed_list = []
 
-    left = [(ck_distance(x1 - 1, y1, x2, y2)), x1 - 1, y1]
-    left_up = [(ck_distance(x1 - 1, y1 + 1, x2, y2)), x1 - 1, y1 + 1]
-    left_down = [(ck_distance(x1 - 1, y1 - 1, x2, y2)), x1 - 1, y1 - 1]
+    # add the start node
+    open_list.append(start_node)
 
-    best_distance = 800
+    # loop until you find the end
+    while len(open_list) > 0:
 
-    if up[0] < best_distance:
-        best_distance = up[0]
-        x1 = up[1]
-        y1 = up[2]
+        # get current node
+        current_node = open_list[0]
+        current_index = 0
+        for index, item in enumerate(open_list):
+            if item.f < current_node.f:
+                current_node = item
+                current_index = index
 
-    if down[0] < best_distance:
-        best_distance = down[0]
-        x1 = down[1]
-        y1 = down[2]
+        # pop current off open list and add to closed list
+        open_list.pop(current_index)
+        closed_list.append(current_node)
 
-    if right_down[0] < best_distance:
-        best_distance = right_down[0]
-        x1 = right_down[1]
-        y1 = right_down[2]
+        # found the goal
+        if current_node == end_node:
+            path = []
+            current = current_node
+            while current is not None:
+                path.append(current.position)
+                current = current.parent
+            return path[::-1] # Return reversed path
 
-    if right[0] < best_distance:
-        best_distance = right[0]
-        x1 = right[1]
-        y1 = right[2]
+        # Generate children
+        children = []
+        for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0), (-1, -1), (-1, 1), (1, -1), (1, 1)]:
 
-    if right_up[0] < best_distance:
-        best_distance = right_up[0]
-        x1 = right_up[1]
-        y1 = right_up[2]
+            # get node position
+            node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
 
-    if left[0] < best_distance:
-        best_distance = left[0]
-        x1 = left[1]
-        y1 = left[2]
+            # make sure within range
+            if node_position[0] > (len(maze) - 1) or node_position[0] < 0 or node_position[1] > (len(maze[len(maze) - 1]) - 1) or node_position[1] < 0 :
+                continue
 
-    if left_up[0] < best_distance:
-        best_distance = left_up[0]
-        x1 = left_up[1]
-        y1 = left_up[2]
+            # make sure walkable terrain
+            if maze[node_position[0]][node_position[1]] != 0:
+                continue
+            # create new node
+            new_node = Node(current_node, node_position)
+            children.append(new_node)
 
-    if left_down[0] < best_distance:
-        x1 = left_down[1]
-        y1 = left_down[2]
+        # loop through children
+        for child in children:
 
-    return x1, y1
+            # child is on the closed list
+            for closed_child in closed_list:
+                if child == closed_child:
+                    continue
+
+            # create the f, g, and h values
+            child.g = current_node.g + 1
+            child.h = ((child.position[0] - end_node.position[0]) ** 2) + ((child.position[1] - end_node.position[1]) **2)
+            child.f = child.g + child.h
+
+            # child is already in the open list
+            for open_node in open_list:
+                if child == open_node and child.g > open_node.g:
+                    continue
+
+            #add the child to the open list
+            open_list.append(child)
 
 
-# moves given item based on given info
-def move_to(item, x, y):
-
-    if item == 'mDuck':
-        pygame.draw.circle(DISPLAYSURF, yellow, (x, y), 5, 0)
-    if item == 'bDuck1':
-        pygame.draw.circle(DISPLAYSURF, yellow, (x, y), 2, 0)
-    if item == 'bDuck2':
-        pygame.draw.circle(DISPLAYSURF, yellow, (x, y), 2, 0)
+def move_to(item, coord):
+    # gives items new location and draws on display surface
+    # time delay is to immitate speed, need a surefire way to decide this,
+    # pixel movement? path[index] % 2?
     if item == 'food':
-        pygame.draw.circle(DISPLAYSURF, blue, (x, y), 2, 0)
+        pygame.draw.circle(DISPLAYSURF, blue, (coord), 2, 0)
+    if item == 'mommaDuck':
+        time.sleep(.01)
+        pygame.draw.circle(DISPLAYSURF, yellow, (coord), 5, 0)
+    if item == 'babyDuck':
+        time.sleep(.0005)
+        pygame.draw.circle(DISPLAYSURF, yellow, (coord), 2, 0)
 
 
-# finds direct distance using coordinates
-def ck_distance(x1, y1, x2, y2):
-    print("checking distance")
-    distance1 = math.sqrt(((x1 - x2) ** 2) + ((y1 - y2) ** 2))
-    if x2 - x1 == 0:
-        return abs(distance1)
-    else:
-        slope1 = (y2-y1)/(x2-x1)
-        print("Distance is: ", distance1, slope1)
-        return abs(distance1)
+def main():
+
+    # starting variables
+
+    maze = [[0] * 400] * 400
+    food = (200, 200)
+    score = 0
+    mDuck = (20, 20)
+    index = 0
+    new_food = True
+
+    # main game loop
+    while True:
+
+        # repeatedly draw/refresh display surface
+        DISPLAYSURF.fill(dark_blue)
+
+        # creates new path if there is a new target
+        if new_food is True:
+            path = find_best_path(maze, mDuck, food)
+            index = 0
+            new_food = False
+
+        mDuck = path[index]
+        move_to('mommaDuck', path[index])
+
+        # immitates following by picking 10 locations in path behind momma
+        if index > 10:
+            move_to('babyDuck', path[index - 10])
+        else:
+            move_to('babyDuck', path[index])
+        if index > 20:
+            move_to('babyDuck', path[index - 20])
+        else:
+            move_to('babyDuck', path[index])
+        print (path[index])
+
+        # if momma finds food, make new food
+        # i want to have a food limit, a belly limit. when reached, babies wandered.
+        # belly slowly empties, when empty, momma finds babies, and continues hunt
+        while mDuck == food:
+            path = 0
+            index = 0
+            new_food = True
+            food = (random.randint(0, 400), random.randint(0, 400))
+            score += 1
+            print(score)
+
+        index += 1
+        # exit window button
+        pygame.display.update()
+        for event in pygame.event.get():
+
+            if event.type == QUIT:
+                pygame.quit()
+                sys.exit()
+
+            fpsClock.tick(FPS)
 
 
-# randomizes location of food each time it gets eaten by mommaDuck
-def rand_food():
-    new_x = random.randint(0, 400)
-    new_y = random.randint(0, 400)
-    return new_x, new_y
-
-
-# make babyDuck wander if wander setting is True
-def wander():
-    new_x = random.randint(0, 400)
-    new_y = random.randint(0, 400)
-    return new_x, new_y
-
-
-# main game loop
-while True:
-
-    # manipulating display surface
-    DISPLAYSURF.fill(dark_blue)
-
-    # Key ##########################################################
-    #  index:         0      1      2         3      4(t/f) 5(t/f) #
-    # mommaDuck = [mom_x, mom_y, target_x, target_y, lost1, lost2] #
-    ################################################################
-    #  index:         0        1       2         3       4(t/f)    #
-    # babyDuck1 = [baby_x1, baby_x2, target_x, target_y, wander]   #
-    ################################################################
-    #  index:         0        1       2         3       4(t/f)    #
-    # babyDuck2 = [baby_x2, baby_y2, target_x, target_y, wander]   #
-    ################################################################
-
-    food = [food_x, food_y]
-
-    # turn into mission function (send targetx, target y) if lost == true: target = baby
-
-    # if babyduck is lost mommaDuck's target is babyDuck1
-    if mDuck[4] is True:
-        mDuck[2] = bDuck1[0]
-        mDuck[3] = bDuck1[1]
-        # if mommaDuck is at babyDuck1, babyDuck1 is no longer lost
-        if mDuck[0] == mDuck[2] and mDuck[1] == mDuck[3]:
-            mDuck[4] = False
-            bDuck1[4] = False
-            target += 1
-
-    # if babyduck is lost mommaDuck's target is babyDuck2
-    if mDuck[5] is True:
-        mDuck[2] = bDuck2[0]
-        mDuck[3] = bDuck2[1]
-        # if mommaDuck is at babyDuck1, babyDuck2 is no longer lost
-        if mDuck[0] == mDuck[2] and mDuck[1] == mDuck[3]:
-            mDuck[4] = False
-            bDuck2[4] = False
-            target += 1
-    # else mommaDuck's target is food
-    else:
-        mDuck[2] = food[0]
-        mDuck[3] = food[1]
-
-    if bDuck1[4] is True:
-        bDuck1[2], bDuck1[3] = wander(target)
-    else:
-        bDuck1[2] = mDuck[0]
-        bDuck1[3] = mDuck[1]
-
-    if bDuck2[4] is True:
-        bDuck2[2], bDuck2[3] = wander(target)
-    else:
-        bDuck2[2] = bDuck1[0]
-        bDuck2[3] = bDuck1[1]
-
-    ############################################################################################################
-    # take start coordinate, check distance from neighboring coordinates, move designated duck to coordinate that
-    # returns the closer coordinates to food
-
-    mDuck[0], mDuck[1] = ck_node(mDuck[0], mDuck[1], mDuck[2], mDuck[3])
-    move_to('mDuck', mDuck[0], mDuck[1])
-    # same as mommaDuck pathfinder but keeps ducks 10 away from target, each one follows the duck in front of it
-
-    if ck_distance(bDuck1[0], bDuck1[1], bDuck1[2], bDuck1[3]) >= 20:
-        bDuck1[0], bDuck1[1] = ck_node(bDuck1[0], bDuck1[1], bDuck1[2], bDuck1[3])
-
-    move_to('bDuck1', bDuck1[0], bDuck1[1])
-
-    if ck_distance(bDuck2[0], bDuck2[1], bDuck2[2], bDuck2[3]) >= 17:
-        bDuck2[0], bDuck2[1] = ck_node(bDuck2[0], bDuck2[1], bDuck2[2], bDuck2[3])
-
-    move_to('bDuck2', bDuck2[0], bDuck2[1])
-
-    ##############################################################################################################
-    # mission complete, reset food location randomly
-    if mDuck[0] == food_x and mDuck[1] == food_y:
-        # send to function that changes food coordinates and prints first frame
-        food_x, food_y = rand_food()
-        move_to('food', food_x, food_y)
-        score += 1
-        print(score)
-
-    # print food for every frame
-    move_to('food', food_x, food_y)
-
-    #############################################################################################################
-    # need a better way to manipulate speed
-    time.sleep(.02)
-
-    # exit window button
-    pygame.display.update()
-    for event in pygame.event.get():
-
-        if event.type == QUIT:
-            pygame.quit()
-            sys.exit()
-
-        fpsClock.tick(FPS)
+if __name__ == '__main__':
+    main()
